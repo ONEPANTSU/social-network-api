@@ -18,9 +18,8 @@ post = Table(
 user_post = Table(
     "user_post",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey(user.c.id)),
-    Column("post_id", Integer, ForeignKey(post.c.id)),
+    Column("user_id", Integer, ForeignKey(user.c.id), primary_key=True),
+    Column("post_id", Integer, ForeignKey(post.c.id), primary_key=True),
     Column("like", Boolean, nullable=False),
 )
 
@@ -36,7 +35,6 @@ class Post(Base):
 
 class UserPost(Base):
     __tablename__ = "user_post"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey(user.c.id))
-    post_id = Column(Integer, ForeignKey(post.c.id))
+    user_id = Column(Integer, ForeignKey(user.c.id), primary_key=True)
+    post_id = Column(Integer, ForeignKey(post.c.id), primary_key=True)
     like = Column(Boolean, nullable=False)

@@ -12,6 +12,10 @@ from src.feed.utils import (
     get_post_by_post_id_json,
     get_posts_by_user_id_json,
     view_post_json,
+    like_post_json,
+    dislike_post_json,
+    remove_the_reaction_json,
+    get_likes_by_post_id_json,
 )
 
 router = APIRouter()
@@ -24,12 +28,12 @@ async def get_post_by_post_id(
     return await get_post_by_post_id_json(post_id=post_id, session=session)
 
 
-@router.put("/get_likes/{post_id}")
+@router.get("/get_likes/{post_id}")
 async def get_likes_by_post_id(
     post_id: int,
     session: AsyncSession = Depends(get_async_session),
 ) -> dict:
-    pass
+    return await get_likes_by_post_id_json(post_id=post_id, session=session)
 
 
 @router.get("/get_posts")
@@ -41,11 +45,11 @@ async def get_posts_by_user_id(
 
 @router.post("/create_post")
 async def create_post(
-    post: PostCreate,
+    post_to_create: PostCreate,
     user: User = Depends(current_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict:
-    return await create_post_json(post=post, user=user, session=session)
+    return await create_post_json(post_to_create=post_to_create, user=user, session=session)
 
 
 @router.delete("/delete_post/{post_id}")
@@ -66,7 +70,7 @@ async def edit_post(
     return await edit_post_json(post_update=post_update, user=user, session=session)
 
 
-@router.get("/view_post/{post_id}")
+@router.put("/view_post/{post_id}")
 async def view_post(
     post_id: int,
     user: User = Depends(current_user),
@@ -76,18 +80,27 @@ async def view_post(
 
 
 @router.put("/like_post/{post_id}")
-def like_post(
+async def like_post(
     post_id: int,
     user: User = Depends(current_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict:
-    pass
+    return await like_post_json(post_id=post_id, user=user, session=session)
 
 
 @router.put("/dislike_post/{post_id}")
-def dislike_post(
+async def dislike_post(
     post_id: int,
     user: User = Depends(current_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict:
-    pass
+    return await dislike_post_json(post_id=post_id, user=user, session=session)
+
+
+@router.put("/remove_the_reaction/{post_id}")
+async def remove_the_reaction(
+    post_id: int,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict:
+    return await remove_the_reaction_json(post_id=post_id, user=user, session=session)
