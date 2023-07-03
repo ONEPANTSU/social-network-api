@@ -1,10 +1,10 @@
-from typing import Optional, List
+from typing import List, Optional
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
-from src.feed.models import Post, post, user_post, UserPost
+from src.feed.models import Post, UserPost, post, user_post
 from src.feed.schemas import PostCreate, PostRead, PostUpdate
 from src.utils import STATUS, logger, return_json
 
@@ -86,33 +86,36 @@ async def get_posts_by_user_id_json(user_id: int, session: AsyncSession) -> dict
 
 @logger.catch
 async def create_post_json(
-    post_to_create: PostCreate, user: User, session: AsyncSession
+    post_to_create: PostCreate, user_id: int, session: AsyncSession
 ) -> dict:
     try:
         new_post = Post(
-            title=post_to_create.title, text=post_to_create.text, user_id=user.id
+            title=post_to_create.title, text=post_to_create.text, user_id=user_id
         )
         session.add(new_post)
         await session.commit()
         return return_json(
             status=STATUS[200],
-            message=f"Пользователь #{user.id} успешно опубликовал пост",
+            message=f"Пользователь #{user_id} успешно опубликовал пост",
         )
     except Exception as e:
         logger.error(str(e))
         return return_json(
             status=STATUS[400],
-            message=f"Произошла ошибка при публикации поста пользователем #{user.id}",
+            message=f"Произошла ошибка при публикации поста пользователем #{user_id}",
             details=str(e),
         )
 
 
 @logger.catch
-async def delete_post_json(post_id: int, user: User, session: AsyncSession) -> dict:
+async def delete_post_json(post_id: int, user_id: int, session: AsyncSession) -> dict:
     try:
         gotten_post = await get_post_by_id(post_id=post_id, session=session)
         if gotten_post is not None:
-            if gotten_post.user_id == user.id:
+            if gotten_post.user_id == user_id:
+                statement = delete(UserPost).where(UserPost.post_id == post_id)
+                await session.execute(statement)
+                await session.commit()
                 statement = delete(Post).where(Post.id == post_id)
                 await session.execute(statement)
                 await session.commit()
@@ -123,7 +126,7 @@ async def delete_post_json(post_id: int, user: User, session: AsyncSession) -> d
             else:
                 return return_json(
                     status=STATUS[400],
-                    message=f"Пользователь #{user.id} не имеет права удалять пост #{post_id}",
+                    message=f"Пользователь #{user_id} не имеет права удалять пост #{post_id}",
                 )
         else:
             return return_json(
@@ -134,7 +137,7 @@ async def delete_post_json(post_id: int, user: User, session: AsyncSession) -> d
         logger.error(str(e))
         return return_json(
             status=STATUS[400],
-            message=f"Произошла ошибка при удалении поста #{post_id} пользователем #{user.id}",
+            message=f"Произошла ошибка при удалении поста #{post_id} пользователем #{user_id}",
             details=str(e),
         )
 
@@ -142,14 +145,14 @@ async def delete_post_json(post_id: int, user: User, session: AsyncSession) -> d
 @logger.catch
 async def edit_post_json(
     post_update: PostUpdate,
-    user: User,
+    user_id: int,
     session: AsyncSession,
 ) -> dict:
     try:
         post_id = post_update.id
         gotten_post = await get_post_by_id(post_id=post_id, session=session)
         if gotten_post is not None:
-            if gotten_post.user_id == user.id:
+            if gotten_post.user_id == user_id:
                 statement = (
                     update(Post)
                     .where(Post.id == post_id)
@@ -159,12 +162,12 @@ async def edit_post_json(
                 await session.commit()
                 return return_json(
                     status=STATUS[200],
-                    message=f"Пост #{post_id} успешно изменён",
+                    message=f"Пост #{post_id} успешно изменён пользователем #{user_id}",
                 )
             else:
                 return return_json(
                     status=STATUS[400],
-                    message=f"Пользователь #{user.id} не имеет права изменять пост #{post_id}",
+                    message=f"Пользователь #{user_id} не имеет права изменять пост #{post_id}",
                 )
         else:
             return return_json(
@@ -175,7 +178,7 @@ async def edit_post_json(
         logger.error(str(e))
         return return_json(
             status=STATUS[400],
-            message=f"Произошла ошибка при изменении поста #{post_update.id} пользователем #{user.id}",
+            message=f"Произошла ошибка при изменении поста #{post_update.id} пользователем #{user_id}",
             details=str(e),
         )
 
@@ -183,7 +186,7 @@ async def edit_post_json(
 @logger.catch
 async def view_post_json(
     post_id: int,
-    user: User,
+    user_id: int,
     session: AsyncSession,
 ) -> dict:
     try:
@@ -198,7 +201,7 @@ async def view_post_json(
             await session.commit()
             return return_json(
                 status=STATUS[200],
-                message=f"Пост #{post_id} успешно просмотрем пользователем #{user.id}",
+                message=f"Пост #{post_id} успешно просмотрем пользователем #{user_id}",
             )
 
         else:
@@ -210,15 +213,19 @@ async def view_post_json(
         logger.error(str(e))
         return return_json(
             status=STATUS[400],
-            message=f"Произошла ошибка при просмотре поста #{post_id} пользователем #{user.id}",
+            message=f"Произошла ошибка при просмотре поста #{post_id} пользователем #{user_id}",
             details=str(e),
         )
 
 
 @logger.catch
-async def get_user_post(user_id: int, post_id: int, session: AsyncSession) -> Optional[UserPost]:
+async def get_user_post(
+    user_id: int, post_id: int, session: AsyncSession
+) -> Optional[UserPost]:
     try:
-        existing_user_post = await session.execute(select(user_post).filter_by(user_id=user_id, post_id=post_id))
+        existing_user_post = await session.execute(
+            select(user_post).filter_by(user_id=user_id, post_id=post_id)
+        )
         row = existing_user_post.one()
         gotten_user_post = UserPost(
             user_id=row.user_id,
@@ -234,41 +241,43 @@ async def get_user_post(user_id: int, post_id: int, session: AsyncSession) -> Op
 @logger.catch
 async def like_post_json(
     post_id: int,
-    user: User,
+    user_id: int,
     session: AsyncSession,
 ) -> dict:
     try:
-        existing_user_post = await get_user_post(user_id=user.id, post_id=post_id, session=session)
+        existing_user_post = await get_user_post(
+            user_id=user_id, post_id=post_id, session=session
+        )
         if existing_user_post is None:
-            new_user_post = UserPost(user_id=user.id, post_id=post_id, like=True)
+            new_user_post = UserPost(user_id=user_id, post_id=post_id, like=True)
             session.add(new_user_post)
             await session.commit()
             return return_json(
                 status=STATUS[200],
-                message=f"Пользователь #{user.id} успешно поставил лайк на пост #{post_id}",
+                message=f"Пользователь #{user_id} успешно поставил лайк на пост #{post_id}",
             )
         elif existing_user_post.like:
             return return_json(
                 status=STATUS[200],
-                message=f"Пользователь #{user.id} уже ставил лайк на пост #{post_id}",
+                message=f"Пользователь #{user_id} уже ставил лайк на пост #{post_id}",
             )
         else:
             statement = (
                 update(UserPost)
-                .where(UserPost.user_id == user.id and UserPost.post_id == post_id)
+                .where(UserPost.user_id == user_id and UserPost.post_id == post_id)
                 .values(like=True)
             )
             await session.execute(statement)
             await session.commit()
             return return_json(
                 status=STATUS[200],
-                message=f"Пользователь #{user.id} убрал дизлайк и поставил лайк на пост #{post_id}",
+                message=f"Пользователь #{user_id} убрал дизлайк и поставил лайк на пост #{post_id}",
             )
     except Exception as e:
         logger.error(str(e))
         return return_json(
             status=STATUS[400],
-            message=f"Произошла ошибка при попытке поставить лайк на пост #{post_id} пользователем #{user.id}",
+            message=f"Произошла ошибка при попытке поставить лайк на пост #{post_id} пользователем #{user_id}",
             details=str(e),
         )
 
@@ -276,41 +285,43 @@ async def like_post_json(
 @logger.catch
 async def dislike_post_json(
     post_id: int,
-    user: User,
+    user_id: int,
     session: AsyncSession,
 ) -> dict:
     try:
-        existing_user_post = await get_user_post(user_id=user.id, post_id=post_id, session=session)
+        existing_user_post = await get_user_post(
+            user_id=user_id, post_id=post_id, session=session
+        )
         if existing_user_post is None:
-            new_user_post = UserPost(user_id=user.id, post_id=post_id, like=False)
+            new_user_post = UserPost(user_id=user_id, post_id=post_id, like=False)
             session.add(new_user_post)
             await session.commit()
             return return_json(
                 status=STATUS[200],
-                message=f"Пользователь #{user.id} успешно поставил дизлайк на пост #{post_id}",
+                message=f"Пользователь #{user_id} успешно поставил дизлайк на пост #{post_id}",
             )
         elif not existing_user_post.like:
             return return_json(
                 status=STATUS[200],
-                message=f"Пользователь #{user.id} уже ставил дизлайк на пост #{post_id}",
+                message=f"Пользователь #{user_id} уже ставил дизлайк на пост #{post_id}",
             )
         else:
             statement = (
                 update(UserPost)
-                .where(UserPost.user_id == user.id and UserPost.post_id == post_id)
+                .where(UserPost.user_id == user_id and UserPost.post_id == post_id)
                 .values(like=False)
             )
             await session.execute(statement)
             await session.commit()
             return return_json(
                 status=STATUS[200],
-                message=f"Пользователь #{user.id} убрал лайк и поставил дизлайк на пост #{post_id}",
+                message=f"Пользователь #{user_id} убрал лайк и поставил дизлайк на пост #{post_id}",
             )
     except Exception as e:
         logger.error(str(e))
         return return_json(
             status=STATUS[400],
-            message=f"Произошла ошибка при попытке поставить дизлайк на пост #{post_id} пользователем #{user.id}",
+            message=f"Произошла ошибка при попытке поставить дизлайк на пост #{post_id} пользователем #{user_id}",
             details=str(e),
         )
 
@@ -318,48 +329,55 @@ async def dislike_post_json(
 @logger.catch
 async def remove_the_reaction_json(
     post_id: int,
-    user: User,
+    user_id: int,
     session: AsyncSession,
 ) -> dict:
     try:
-        existing_user_post = await get_user_post(user_id=user.id, post_id=post_id, session=session)
+        existing_user_post = await get_user_post(
+            user_id=user_id, post_id=post_id, session=session
+        )
         if existing_user_post is None:
             return return_json(
                 status=STATUS[400],
-                message=f"Пользователь #{user.id} ещё не ставил реакцию на пост #{post_id}",
+                message=f"Пользователь #{user_id} ещё не ставил реакцию на пост #{post_id}",
             )
         else:
-            statement = (
-                delete(UserPost)
-                .where(UserPost.user_id == user.id and UserPost.post_id == post_id)
+            statement = delete(UserPost).where(
+                UserPost.user_id == user_id and UserPost.post_id == post_id
             )
             await session.execute(statement)
             await session.commit()
             return return_json(
                 status=STATUS[200],
-                message=f"Пользователь #{user.id} убрал реакцию на пост #{post_id}",
+                message=f"Пользователь #{user_id} убрал реакцию на пост #{post_id}",
             )
     except Exception as e:
         logger.error(str(e))
         return return_json(
             status=STATUS[400],
-            message=f"Произошла ошибка при попытке убрать реакцию на пост #{post_id} пользователем #{user.id}",
+            message=f"Произошла ошибка при попытке убрать реакцию на пост #{post_id} пользователем #{user_id}",
             details=str(e),
         )
 
 
 @logger.catch
-async def get_all_user_post_by_post_id(post_id: int, session: AsyncSession) -> Optional[List[UserPost]]:
+async def get_all_user_post_by_post_id(
+    post_id: int, session: AsyncSession
+) -> Optional[List[UserPost]]:
     try:
-        existing_user_post = await session.execute(select(user_post).filter_by(post_id=post_id))
+        existing_user_post = await session.execute(
+            select(user_post).filter_by(post_id=post_id)
+        )
         data = existing_user_post.all()
         gotten_user_post = []
         for row in data:
-            gotten_user_post.append(UserPost(
-                user_id=row.user_id,
-                post_id=row.post_id,
-                like=row.like,
-            ))
+            gotten_user_post.append(
+                UserPost(
+                    user_id=row.user_id,
+                    post_id=row.post_id,
+                    like=row.like,
+                )
+            )
         return gotten_user_post
     except Exception as e:
         logger.error(str(e))
@@ -374,15 +392,27 @@ async def get_likes_by_post_id_json(
     try:
         gotten_post = await get_post_by_id(post_id=post_id, session=session)
         if gotten_post is not None:
-            existing_user_post = await get_all_user_post_by_post_id(post_id=post_id, session=session)
+            existing_user_post = await get_all_user_post_by_post_id(
+                post_id=post_id, session=session
+            )
             if existing_user_post is not None:
-                likes_count = sum(1 for user_post_element in existing_user_post if user_post_element.like)
+                likes_count = sum(
+                    1
+                    for user_post_element in existing_user_post
+                    if user_post_element.like
+                )
                 dislikes_count = len(existing_user_post) - likes_count
-                data = [{"total_reactions": len(existing_user_post), "likes": likes_count, "dislikes": dislikes_count}]
+                data = [
+                    {
+                        "total_reactions": len(existing_user_post),
+                        "likes": likes_count,
+                        "dislikes": dislikes_count,
+                    }
+                ]
                 return return_json(
                     status=STATUS[200],
                     message=f"Успешно получены реакции на пост #{post_id}",
-                    data=data
+                    data=data,
                 )
             else:
                 return return_json(
