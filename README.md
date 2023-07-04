@@ -78,5 +78,3 @@ pytest -v .\tests\test_auth.py
 ```python
 pytest -v .\tests\test_feed.py
 ```
-
-![by SoftBannas inc.](https://github.com/ONEPANTSU/ONEPANTSU/blob/main/sbi_logo.svg)
