@@ -29,7 +29,7 @@ DB_NAME=social_network
 DB_USER=postgres
 DB_PASSWORD=postgres
 
-JWT_SECRET="USER_MANAGER_SECRET"
+JWT_SECRET="JWT_SECRET"
 USER_MANAGER_SECRET="USER_MANAGER_SECRET"
 ```
 6. Activate the virtual environment of the project
