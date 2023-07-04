@@ -249,13 +249,20 @@ async def like_post_json(
             user_id=user_id, post_id=post_id, session=session
         )
         if existing_user_post is None:
-            new_user_post = UserPost(user_id=user_id, post_id=post_id, like=True)
-            session.add(new_user_post)
-            await session.commit()
-            return return_json(
-                status=STATUS[200],
-                message=f"Пользователь #{user_id} успешно поставил лайк на пост #{post_id}",
-            )
+            gotten_post = await get_post_by_id(post_id=post_id, session=session)
+            if gotten_post.user_id == user_id:
+                return return_json(
+                    status=STATUS[400],
+                    message=f"Пользователь #{user_id} попытался поставить реакцию на свой пост #{post_id} ",
+                )
+            else:
+                new_user_post = UserPost(user_id=user_id, post_id=post_id, like=True)
+                session.add(new_user_post)
+                await session.commit()
+                return return_json(
+                    status=STATUS[200],
+                    message=f"Пользователь #{user_id} успешно поставил лайк на пост #{post_id}",
+                )
         elif existing_user_post.like:
             return return_json(
                 status=STATUS[200],
@@ -293,13 +300,20 @@ async def dislike_post_json(
             user_id=user_id, post_id=post_id, session=session
         )
         if existing_user_post is None:
-            new_user_post = UserPost(user_id=user_id, post_id=post_id, like=False)
-            session.add(new_user_post)
-            await session.commit()
-            return return_json(
-                status=STATUS[200],
-                message=f"Пользователь #{user_id} успешно поставил дизлайк на пост #{post_id}",
-            )
+            gotten_post = await get_post_by_id(post_id=post_id, session=session)
+            if gotten_post.user_id == user_id:
+                return return_json(
+                    status=STATUS[400],
+                    message=f"Пользователь #{user_id} попытался поставить реакцию на свой пост #{post_id} ",
+                )
+            else:
+                new_user_post = UserPost(user_id=user_id, post_id=post_id, like=False)
+                session.add(new_user_post)
+                await session.commit()
+                return return_json(
+                    status=STATUS[200],
+                    message=f"Пользователь #{user_id} успешно поставил дизлайк на пост #{post_id}",
+                )
         elif not existing_user_post.like:
             return return_json(
                 status=STATUS[200],

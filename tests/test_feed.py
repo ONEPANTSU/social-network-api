@@ -14,8 +14,8 @@ from src.feed.utils import (
     view_post_json,
 )
 from src.utils import STATUS, return_json
-from tests.constants import EMAIL, PASSWD, USERNAME
-from tests.utils import get_user, register, delete_user
+from tests.constants import EMAIL, EMAIL_2, PASSWD, PASSWD_2, USERNAME, USERNAME_2
+from tests.utils import delete_user, get_user, register
 
 
 async def test_create_post(ac: AsyncClient):
@@ -81,7 +81,14 @@ async def test_edit_post_with_wrong_user(ac: AsyncClient):
 
     post_update = PostUpdate(id=post_id, title="Новый загаловок", text="Новый текст")
 
-    wrong_user_id = user_id + 1
+    if len(await get_user(EMAIL_2)) == 0:
+        response = await register(
+            ac=ac, email=EMAIL_2, username=USERNAME_2, password=PASSWD_2
+        )
+        assert response.status_code == 201
+    assert len(await get_user(EMAIL_2)) == 1
+    wrong_user = await get_user(email=EMAIL_2)
+    wrong_user_id = wrong_user[0][0].id
 
     right_response = return_json(
         status=STATUS[400],
@@ -171,12 +178,44 @@ async def test_view_post_with_wrong_post():
         assert value == response[key] or value is response[key]
 
 
-async def test_like_post():
-    user = await get_user(email=EMAIL)
-    user_id = user[0][0].id
+async def test_like_post_by_author(ac: AsyncClient):
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
 
     async with async_session_maker() as session:
-        posts = await get_posts_by_user_id_json(user_id=user_id, session=session)
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
+    post_id = posts["data"][-1]["id"]
+
+    right_response = return_json(
+        status=STATUS[400],
+        message=f"Пользователь #{auth_id} попытался поставить реакцию на свой пост #{post_id} ",
+    )
+
+    async with async_session_maker() as session:
+        response = await like_post_json(
+            post_id=post_id, user_id=auth_id, session=session
+        )
+
+    for key, value in right_response.items():
+        assert value == response[key] or value is response[key]
+
+
+
+async def test_like_post(ac: AsyncClient):
+    if len(await get_user(EMAIL_2)) == 0:
+        response = await register(
+            ac=ac, email=EMAIL_2, username=USERNAME_2, password=PASSWD_2
+        )
+        assert response.status_code == 201
+    assert len(await get_user(EMAIL_2)) == 1
+    user = await get_user(email=EMAIL_2)
+    user_id = user[0][0].id
+
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
+
+    async with async_session_maker() as session:
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
     post_id = posts["data"][-1]["id"]
 
     right_response = return_json(
@@ -210,12 +249,21 @@ async def test_like_post():
         assert value == get_likes_data[key] or value is get_likes_data[key]
 
 
-async def test_double_like_post():
-    user = await get_user(email=EMAIL)
+async def test_double_like_post(ac: AsyncClient):
+    if len(await get_user(EMAIL_2)) == 0:
+        response = await register(
+            ac=ac, email=EMAIL_2, username=USERNAME_2, password=PASSWD_2
+        )
+        assert response.status_code == 201
+    assert len(await get_user(EMAIL_2)) == 1
+    user = await get_user(email=EMAIL_2)
     user_id = user[0][0].id
 
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
+
     async with async_session_maker() as session:
-        posts = await get_posts_by_user_id_json(user_id=user_id, session=session)
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
     post_id = posts["data"][-1]["id"]
 
     right_response = return_json(
@@ -247,12 +295,21 @@ async def test_double_like_post():
         assert value == get_likes_data[key] or value is get_likes_data[key]
 
 
-async def test_change_dislike_to_like_post():
-    user = await get_user(email=EMAIL)
+async def test_change_dislike_to_like_post(ac: AsyncClient):
+    if len(await get_user(EMAIL_2)) == 0:
+        response = await register(
+            ac=ac, email=EMAIL_2, username=USERNAME_2, password=PASSWD_2
+        )
+        assert response.status_code == 201
+    assert len(await get_user(EMAIL_2)) == 1
+    user = await get_user(email=EMAIL_2)
     user_id = user[0][0].id
 
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
+
     async with async_session_maker() as session:
-        posts = await get_posts_by_user_id_json(user_id=user_id, session=session)
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
     post_id = posts["data"][-1]["id"]
 
     right_response = return_json(
@@ -284,12 +341,44 @@ async def test_change_dislike_to_like_post():
         assert value == get_likes_data[key] or value is get_likes_data[key]
 
 
-async def test_dislike_post():
-    user = await get_user(email=EMAIL)
-    user_id = user[0][0].id
+async def test_dislike_post_by_author(ac: AsyncClient):
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
 
     async with async_session_maker() as session:
-        posts = await get_posts_by_user_id_json(user_id=user_id, session=session)
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
+    post_id = posts["data"][-1]["id"]
+
+    right_response = return_json(
+        status=STATUS[400],
+        message=f"Пользователь #{auth_id} попытался поставить реакцию на свой пост #{post_id} ",
+    )
+
+    async with async_session_maker() as session:
+        response = await dislike_post_json(
+            post_id=post_id, user_id=auth_id, session=session
+        )
+
+    for key, value in right_response.items():
+        assert value == response[key] or value is response[key]
+
+
+
+async def test_dislike_post(ac: AsyncClient):
+    if len(await get_user(EMAIL_2)) == 0:
+        response = await register(
+            ac=ac, email=EMAIL_2, username=USERNAME_2, password=PASSWD_2
+        )
+        assert response.status_code == 201
+    assert len(await get_user(EMAIL_2)) == 1
+    user = await get_user(email=EMAIL_2)
+    user_id = user[0][0].id
+
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
+
+    async with async_session_maker() as session:
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
     post_id = posts["data"][-1]["id"]
 
     right_response = return_json(
@@ -323,12 +412,21 @@ async def test_dislike_post():
         assert value == get_likes_data[key] or value is get_likes_data[key]
 
 
-async def test_double_dislike_post():
-    user = await get_user(email=EMAIL)
+async def test_double_dislike_post(ac: AsyncClient):
+    if len(await get_user(EMAIL_2)) == 0:
+        response = await register(
+            ac=ac, email=EMAIL_2, username=USERNAME_2, password=PASSWD_2
+        )
+        assert response.status_code == 201
+    assert len(await get_user(EMAIL_2)) == 1
+    user = await get_user(email=EMAIL_2)
     user_id = user[0][0].id
 
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
+
     async with async_session_maker() as session:
-        posts = await get_posts_by_user_id_json(user_id=user_id, session=session)
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
     post_id = posts["data"][-1]["id"]
 
     right_response = return_json(
@@ -360,12 +458,21 @@ async def test_double_dislike_post():
         assert value == get_likes_data[key] or value is get_likes_data[key]
 
 
-async def test_change_like_to_dislike_post():
-    user = await get_user(email=EMAIL)
+async def test_change_like_to_dislike_post(ac: AsyncClient):
+    if len(await get_user(EMAIL_2)) == 0:
+        response = await register(
+            ac=ac, email=EMAIL_2, username=USERNAME_2, password=PASSWD_2
+        )
+        assert response.status_code == 201
+    assert len(await get_user(EMAIL_2)) == 1
+    user = await get_user(email=EMAIL_2)
     user_id = user[0][0].id
 
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
+
     async with async_session_maker() as session:
-        posts = await get_posts_by_user_id_json(user_id=user_id, session=session)
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
     post_id = posts["data"][-1]["id"]
 
     right_response = return_json(
@@ -397,12 +504,21 @@ async def test_change_like_to_dislike_post():
         assert value == get_likes_data[key] or value is get_likes_data[key]
 
 
-async def test_remove_the_reaction():
-    user = await get_user(email=EMAIL)
+async def test_remove_the_reaction(ac: AsyncClient):
+    if len(await get_user(EMAIL_2)) == 0:
+        response = await register(
+            ac=ac, email=EMAIL_2, username=USERNAME_2, password=PASSWD_2
+        )
+        assert response.status_code == 201
+    assert len(await get_user(EMAIL_2)) == 1
+    user = await get_user(email=EMAIL_2)
     user_id = user[0][0].id
 
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
+
     async with async_session_maker() as session:
-        posts = await get_posts_by_user_id_json(user_id=user_id, session=session)
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
     post_id = posts["data"][-1]["id"]
 
     right_response = return_json(
@@ -443,12 +559,21 @@ async def test_remove_the_reaction():
         assert value == get_likes_data[key] or value is get_likes_data[key]
 
 
-async def test_double_remove_the_reaction():
-    user = await get_user(email=EMAIL)
+async def test_double_remove_the_reaction(ac: AsyncClient):
+    if len(await get_user(EMAIL_2)) == 0:
+        response = await register(
+            ac=ac, email=EMAIL_2, username=USERNAME_2, password=PASSWD_2
+        )
+        assert response.status_code == 201
+    assert len(await get_user(EMAIL_2)) == 1
+    user = await get_user(email=EMAIL_2)
     user_id = user[0][0].id
 
+    auth = await get_user(email=EMAIL)
+    auth_id = auth[0][0].id
+
     async with async_session_maker() as session:
-        posts = await get_posts_by_user_id_json(user_id=user_id, session=session)
+        posts = await get_posts_by_user_id_json(user_id=auth_id, session=session)
     post_id = posts["data"][-1]["id"]
 
     right_response = return_json(
