@@ -1,7 +1,13 @@
 ![SocialNetworkFastAPI](/res/img/logo.svg)
 ___
 
-💻 SocialNetworkFastAPI is a simple RESTful API using FastAPI for a social networking application.
+💻 SocialNetworkFastAPI is a simple and efficient RESTful API built using FastAPI for a social networking application. It provides various features to enhance the user experience, including JWT authentication and registration. Users can easily sign up and log in to access the platform's functionalities.
+
+One of the main features of this API is the ability to create, edit, delete, and view posts. Users can share their thoughts, experiences they want with others. Additionally, users can interact with posts by liking or disliking them. However, they can only perform these actions on other users' posts and not on their own.
+
+To ensure a seamless experience for developers, SocialNetworkFastAPI also includes a UI documentation feature powered by Swagger. This documentation makes it easy to understand and explore the available endpoints, request formats, and response structures.
+
+Overall, SocialNetworkFastAPI aims to provide a robust and user-friendly API solution for building social networking applications, enabling developers to focus on implementing the core features of their application without worrying about the complexities of authentication, post management, and user interactions.
 
 ## Features
 - [X] There are JWT authentication and registration
@@ -9,6 +15,25 @@ ___
 - [X] There are ability to create, edit, delete and view posts
 - [X] There are ability to like and dislike other users’ posts but not your own 
 - [X] There are a UI Documentation (Swagger) for API
+
+## Endpoints
+The API has following endpoints:
+1. Auth module:
+    + POST /auth/jwt/login
+    + POST /auth/jwt/logout
+    + POST /auth/registration
+
+2. Feed module:
+     + GET /feed/get_post/{post_id}
+     + GET /feed/get_reactions/{post_id}
+     + GET /feed/get_posts/{user_id}
+     + POST /feed/create_post
+     + DELETE /feed/delete_post/{post_id}
+     + PUT /feed/edit_post/{post_id}
+     + PUT /feed/view_post/{post_id}
+     + PUT /feed/like_post/{post_id}
+     + PUT /feed/dislike_post/{post_id}
+     + DELETE /feed/remove_the_reaction/{post_id}
 
 ## Installation
 1. Clone the repository: 
@@ -33,20 +58,23 @@ JWT_SECRET="JWT_SECRET"
 USER_MANAGER_SECRET="USER_MANAGER_SECRET"
 ```
 6. Activate the virtual environment of the project
-7. Use `alembic upgrade head ` for creating tables
+7. Use alembic for creating tables:
+```python
+alembic upgrade head
+```  
 8. Run the API with your host and port:
-```
+```python
 uvicorn src.main:app --reload --host <IP> --port <PORT>
 ``` 
-9. The API will be able by `http://<IP>:<PORT>`
-10. The Swagger will be able by `http://<IP>:<PORT>/docs`
+9. The API will be able by link: `http://<IP>:<PORT>`
+10. The Swagger will be able by link: `http://<IP>:<PORT>/docs`
 
 ## Testing
-1. For testing auth module use: 
+1. For testing Auth module use: 
 ```python
 pytest -v .\tests\test_auth.py
 ```
-2. For testing feed module use: 
+2. For testing Feed module use: 
 ```python
 pytest -v .\tests\test_feed.py
 ```
