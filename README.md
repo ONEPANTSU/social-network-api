@@ -1,4 +1,4 @@
-# ![SocialNetworkFastAPI](/res/img/logo.svg)
+![SocialNetworkFastAPI](/res/img/logo.svg)
 ___
 
 💻 SocialNetworkFastAPI is a simple RESTful API using FastAPI for a social networking application.
