@@ -36,7 +36,7 @@ USER_MANAGER_SECRET="USER_MANAGER_SECRET"
 7. Use `alembic upgrade head ` for creating tables
 8. Run the API with your host and port:
 ```
-uvicorn main:app --reload --host <IP> --port <PORT>
+uvicorn src.main:app --reload --host <IP> --port <PORT>
 ``` 
 9. The API will be able by `http://<IP>:<PORT>`
 10. The Swagger will be able by `http://<IP>:<PORT>/docs`
