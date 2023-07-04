@@ -28,15 +28,15 @@ async def get_post_by_post_id(
     return await get_post_by_post_id_json(post_id=post_id, session=session)
 
 
-@router.get("/get_likes/{post_id}")
-async def get_likes_by_post_id(
+@router.get("/get_reactions/{post_id}")
+async def get_reactions_by_post_id(
     post_id: int,
     session: AsyncSession = Depends(get_async_session),
 ) -> dict:
     return await get_likes_by_post_id_json(post_id=post_id, session=session)
 
 
-@router.get("/get_posts")
+@router.get("/get_posts/{user_id}")
 async def get_posts_by_user_id(
     user_id: int, session: AsyncSession = Depends(get_async_session)
 ) -> dict:
@@ -101,7 +101,7 @@ async def dislike_post(
     return await dislike_post_json(post_id=post_id, user_id=user.id, session=session)
 
 
-@router.put("/remove_the_reaction/{post_id}")
+@router.delete("/remove_the_reaction/{post_id}")
 async def remove_the_reaction(
     post_id: int,
     user: User = Depends(current_user),
