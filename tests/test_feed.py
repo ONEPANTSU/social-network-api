@@ -674,3 +674,5 @@ async def test_delete_post():
 async def test_delete_user():
     await delete_user(EMAIL)
     assert len(await get_user(EMAIL)) == 0
+    await delete_user(EMAIL_2)
+    assert len(await get_user(EMAIL_2)) == 0
