@@ -1,4 +1,4 @@
-# SocialNetworkFastAPI
+# ![SocialNetworkFastAPI](/res/img/logo.svg)
 ___
 
 💻 SocialNetworkFastAPI is a simple RESTful API using FastAPI for a social networking application.
@@ -17,7 +17,7 @@ git clone https://github.com/ONEPANTSU/SocialNetworkFastAPI.git
 ```
 2. Install the requirements:
 ```
-pip install -r requirements.txt
+pip install -r requirements/requirements.txt
 ```
 3. Run the PostgreSQL Server
 4. Create database for this project
@@ -50,3 +50,5 @@ pytest -v .\tests\test_auth.py
 ```python
 pytest -v .\tests\test_feed.py
 ```
+
+![by SoftBannas inc.](https://github.com/ONEPANTSU/ONEPANTSU/blob/main/sbi_logo.svg)
