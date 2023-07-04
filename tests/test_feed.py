@@ -200,7 +200,6 @@ async def test_like_post_by_author(ac: AsyncClient):
         assert value == response[key] or value is response[key]
 
 
-
 async def test_like_post(ac: AsyncClient):
     if len(await get_user(EMAIL_2)) == 0:
         response = await register(
@@ -361,7 +360,6 @@ async def test_dislike_post_by_author(ac: AsyncClient):
 
     for key, value in right_response.items():
         assert value == response[key] or value is response[key]
-
 
 
 async def test_dislike_post(ac: AsyncClient):
